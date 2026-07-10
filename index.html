@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>TFT Comp Finder – Set 17</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --border:#2a3140;
+    --txt:#e6edf3; --muted:#8b949e; --accent:#4c8dff; --accent2:#7a5cff;
+    --c1:#8a8f98; --c2:#5aab5a; --c3:#4c8dff; --c4:#b45cf0; --c5:#f0b400;
+    --tS:#ff5b5b; --tA:#ff9f43; --tB:#4c8dff; --tC:#8b949e;
+    --silver:#9aa7b3; --gold:#f0b400; --prismatic:#e07bff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
+  header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;position:sticky;top:0;background:rgba(13,17,23,.92);backdrop-filter:blur(8px);z-index:20}
+  header h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
+  header h1 span{color:var(--accent)}
+  .patch{font-size:11px;color:var(--muted);background:var(--panel2);padding:3px 9px;border-radius:20px;border:1px solid var(--border)}
+  .wrap{display:flex;min-height:calc(100vh - 55px)}
+  .side{width:350px;min-width:310px;border-right:1px solid var(--border);display:flex;flex-direction:column;max-height:calc(100vh - 55px);position:sticky;top:55px}
+  .searchbox{padding:12px}
+  .searchbox input{width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--border);background:var(--panel);color:var(--txt);font-size:14px;outline:none}
+  .searchbox input:focus{border-color:var(--accent)}
+  .filters{display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 8px}
+  .chip{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--panel);color:var(--muted);cursor:pointer;user-select:none}
+  .chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .list{overflow-y:auto;padding:4px 8px 20px;flex:1}
+  .comprow{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;cursor:pointer;border:1px solid transparent}
+  .comprow:hover{background:var(--panel)}
+  .comprow.sel{background:var(--panel2);border-color:var(--accent)}
+  .tierbadge{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;flex-shrink:0}
+  .t-S{background:var(--tS)} .t-A{background:var(--tA)} .t-B{background:var(--tB)} .t-C{background:var(--tC)}
+  .comprow .nm{font-weight:600;font-size:13.5px;line-height:1.25}
+  .comprow .sub{font-size:11px;color:var(--muted)}
+  .comprow .mini{margin-left:auto;display:flex;gap:2px}
+  .comprow .mini img,.comprow .mini .fb{width:22px;height:22px;border-radius:5px;object-fit:cover}
+  .main{flex:1;padding:22px 26px;overflow-y:auto;max-height:calc(100vh - 55px)}
+  .empty{color:var(--muted);text-align:center;margin-top:80px}
+  .title{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .title h2{margin:0;font-size:23px}
+  .alias{font-size:12px;color:var(--muted);margin-top:3px}
+  .alias b{color:var(--accent2)}
+  .badges{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 6px}
+  .pill{font-size:12px;padding:5px 11px;border-radius:20px;background:var(--panel2);border:1px solid var(--border)}
+  .pill b{color:var(--accent)}
+  .pill.roll-fast{border-color:#ff9f43} .pill.roll-slow{border-color:#5aab5a}
+  .sect{margin-top:26px}
+  .sect h3{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:0 0 12px;border-bottom:1px solid var(--border);padding-bottom:7px}
+  .traits{display:flex;gap:8px;flex-wrap:wrap}
+  .trait{display:flex;align-items:center;gap:7px;background:var(--panel);padding:5px 11px;border-radius:7px;border:1px solid var(--border);font-size:12px}
+  .trait .tico{width:18px;height:18px;filter:brightness(0) invert(1);opacity:.9}
+  .trait .tfb{width:18px;height:18px;border-radius:4px;background:var(--panel2);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--muted)}
+  .trait b{color:var(--accent);font-weight:700}
+  .units{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:10px}
+  .unit{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:8px 6px;text-align:center;position:relative}
+  .unit.carry{border-color:var(--c5);box-shadow:0 0 0 1px var(--c5) inset}
+  .unit .ic{width:52px;height:52px;border-radius:9px;margin:0 auto 5px;object-fit:cover;display:block;border:2px solid var(--border)}
+  .unit.c1 .ic{border-color:var(--c1)} .unit.c2 .ic{border-color:var(--c2)} .unit.c3 .ic{border-color:var(--c3)}
+  .unit.c4 .ic{border-color:var(--c4)} .unit.c5 .ic{border-color:var(--c5)}
+  .unit .fb{width:52px;height:52px;border-radius:9px;margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;background:var(--panel2);border:2px solid var(--border)}
+  .unit .un{font-size:11px;font-weight:600;line-height:1.2;display:block}
+  .unit .co{font-size:10px;color:var(--c5)}
+  .unit .star{position:absolute;top:4px;right:6px;font-size:11px;color:var(--c5)}
+  .carries{display:flex;flex-direction:column;gap:14px}
+  .carrycard{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .carryhead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .carryhead .ic,.carryhead .fb{width:40px;height:40px;border-radius:8px;object-fit:cover;border:2px solid var(--c5)}
+  .carryhead .fb{display:flex;align-items:center;justify-content:center;font-weight:700;background:var(--panel2)}
+  .carryhead .nm{font-weight:700;font-size:15px}
+  .carryhead .role{font-size:11px;color:var(--muted)}
+  .itemrow{display:flex;gap:10px;flex-wrap:wrap}
+  .itembox{display:flex;align-items:center;gap:7px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px}
+  .itembox img,.itembox .fb3{width:26px;height:26px;border-radius:5px}
+  .itembox .fb3{display:flex;align-items:center;justify-content:center;font-size:9px;background:#333;color:#ccc;text-align:center;line-height:1}
+  .top6{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
+  .top6 .itembox{background:var(--panel)}
+  .augs{display:flex;flex-direction:column;gap:8px}
+  .aug{display:flex;align-items:center;gap:11px;background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:9px 13px}
+  .aug .rank{font-weight:800;color:var(--muted);width:18px}
+  .aug .rar{font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;text-transform:uppercase;letter-spacing:.5px;margin-left:auto}
+  .rar-Silver{background:rgba(154,167,179,.18);color:var(--silver);border:1px solid var(--silver)}
+  .rar-Gold{background:rgba(240,180,0,.15);color:var(--gold);border:1px solid var(--gold)}
+  .rar-Prismatic{background:rgba(224,123,255,.15);color:var(--prismatic);border:1px solid var(--prismatic)}
+  .econ{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .econcard{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:13px}
+  .econcard h4{margin:0 0 6px;font-size:13px}
+  .econcard.win h4{color:#5aab5a} .econcard.loss h4{color:#ff5b5b} .econcard.gold h4{color:var(--gold)} .econcard.level h4{color:var(--accent)}
+  .econcard p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.5}
+  .note{font-size:12px;color:var(--muted);line-height:1.6;background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:11px 14px;margin-top:10px}
+  .info{font-size:11px;color:var(--muted);padding:8px 12px;border-top:1px solid var(--border);line-height:1.5}
+  .loadbar{font-size:11px;color:var(--muted);padding:0 12px 8px}
+  .err{margin:60px auto;max-width:520px;background:var(--panel);border:1px solid #ff5b5b;border-radius:10px;padding:20px;color:var(--txt);line-height:1.6}
+  @media(max-width:780px){.wrap{flex-direction:column}.side{width:100%;position:static;max-height:none}.econ{grid-template-columns:1fr}}
+  /* --- Lesbarkeit / Trait-Icons / Sterne --- */
+  .main{font-size:15px}
+  .trait .tico{width:20px;height:20px;filter:none;opacity:1}
+  .trait{font-size:13.5px}
+  .note{font-size:14px;line-height:1.7}
+  .sect h3{font-size:13.5px}
+  .econcard h4{font-size:14px}
+  .econcard p{font-size:14px;line-height:1.6}
+  .itembox{font-size:13.5px}
+  .itembox img,.itembox .fb3{width:28px;height:28px}
+  .carryhead .nm{font-size:16.5px}
+  .carryhead .role{font-size:13px}
+  .unit .un{font-size:12.5px}
+  .unit .co{font-size:12px}
+  .aug{font-size:14.5px}
+  .pill{font-size:13px}
+  .alias{font-size:13px}
+  .stars{color:var(--c5);letter-spacing:-1px;font-size:11px}
+  .carryhead .role .stars{font-size:12px}
+  /* --- Item-Karten mit Komponenten --- */
+  .itemrow{gap:12px}
+  .itemcard{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:8px 11px;display:flex;flex-direction:column;gap:7px;min-width:170px}
+  .itemtop{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600}
+  .itemtop img,.itemtop .fb3{width:30px;height:30px;border-radius:6px}
+  .itemcomps{display:flex;align-items:center;justify-content:center;gap:9px;border-top:1px dashed var(--border);padding-top:7px}
+  .itemcomps .cmp{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)}
+  .itemcomps .cmp img,.itemcomps .cmp .cmpfb{width:22px;height:22px;border-radius:5px}
+  .itemcomps .cmp .cmpfb{display:flex;align-items:center;justify-content:center;background:#2b3240;color:#ccd;font-size:8px;font-weight:700}
+  .itemcomps .plus{color:var(--c5);font-weight:800;font-size:14px}
+  .itemcard{min-width:190px}
+  .itemcomps{flex-wrap:wrap}
+  .sublbl{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);opacity:.7;width:100%;text-align:center;margin-bottom:1px}
+  .itemcomps.alt .plus{color:var(--muted)}
+  .trait b{color:var(--c5);font-weight:800}
+</style>
+</head>
+<body>
+<header>
+  <h1>TFT <span>Comp Finder</span></h1>
+  <span class="patch" id="patch">Set 17</span>
+  <span style="margin-left:auto;font-size:11px;color:var(--muted)">Quelle: tftactics.gg</span>
+</header>
+
+<div class="wrap">
+  <aside class="side">
+    <div class="searchbox">
+      <input id="search" type="text" placeholder="Suche: Champion, Trait oder Comp…  z. B. 'Jhin', 'Mecha', 'Stargazer'" autocomplete="off">
+    </div>
+    <div class="filters" id="filters">
+      <span class="chip active" data-t="all">Alle</span>
+      <span class="chip" data-t="S">S-Tier</span>
+      <span class="chip" data-t="A">A-Tier</span>
+      <span class="chip" data-t="fast">Fast Roll</span>
+      <span class="chip" data-t="slow">Slow Roll</span>
+    </div>
+    <div class="loadbar" id="count"></div>
+    <div class="list" id="list"></div>
+  </aside>
+
+  <main class="main" id="main">
+    <div class="empty">← Wähle links eine Comp oder suche nach Champion / Trait.</div>
+  </main>
+</div>
+
+<footer style="padding:14px 20px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6">
+  Privates, nicht-kommerzielles Fan-Projekt. Comp-Daten inspiriert von tftactics.gg; Spielinhalte gehören Riot Games.
+  Dieses Tool ist nicht von Riot Games unterstützt und gibt nicht die Ansichten von Riot Games wieder. Teamfight Tactics
+  und Riot Games sind Marken oder eingetragene Marken von Riot Games, Inc.
+</footer>
+
+<script src="comps.js"></script>
+<script>
+const CHAMP_CDN = n => `https://sunderarmor.com/characters/Skin/17/${n}.png`;
+const ITEM_CDN  = n => `https://sunderarmor.com/items/${n}.png`;
+const TRAIT_CDN = k => `https://sunderarmor.com/icons/${k}.png`;
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const initials = name => name.split(' ').map(w=>w[0]).join('').slice(0,3);
+
+function champImg(slug,name,cls){
+  return `<img class="${cls}" src="${CHAMP_CDN(slug)}" alt="${esc(name)}" onerror="this.replaceWith(mkFb('fb','${esc(initials(name))}'))">`;
+}
+function mkFb(cls,txt){ const d=document.createElement('div'); d.className=cls; d.textContent=txt; return d; }
+function traitImg(t){
+  const ab = t.n.replace(/[^A-Za-z]/g,'').slice(0,2).toUpperCase();
+  const key = t.key || t.n.toLowerCase().replace(/\s+/g,'');
+  return `<img class="tico" src="${TRAIT_CDN(key)}" alt="${esc(t.n)}" onerror="this.replaceWith(mkFbSpan('${ab}'))">`;
+}
+function mkFbSpan(txt){ const s=document.createElement('span'); s.className='tfb'; s.textContent=txt; return s; }
+function itemImg(it){
+  const ab = (it.short||it.name).slice(0,4);
+  const src = it.icon || ITEM_CDN(it.slug);
+  return `<img src="${src}" alt="${esc(it.name)}" title="${esc(it.name)}" onerror="this.replaceWith(mkFb('fb3','${esc(ab)}'))">`;
+}
+function compIcon(c){
+  const ab = (c.name||'').split(' ').map(w=>w[0]).join('').slice(0,3);
+  const src = c.icon || ITEM_CDN(c.slug);
+  return `<span class="cmp"><img src="${src}" alt="${esc(c.name)}" title="${esc(c.name)}" onerror="this.replaceWith(mkFb('cmpfb','${esc(ab)}'))"><span>${esc(c.name)}</span></span>`;
+}
+
+const COMPS = window.TFT_COMPS || [];
+const RAR_ORDER = {Prismatic:0, Gold:1, Silver:2};
+const TIER_RANK = {S:0, A:1, B:2, C:3};
+const starPips = n => n ? `<span class="stars" title="${n}-Star">${'★'.repeat(n)}</span>` : '';
+let state = {filter:"all", q:"", sel:0};
+const listEl = document.getElementById('list');
+const mainEl = document.getElementById('main');
+const countEl = document.getElementById('count');
+
+if(window.TFT_META) document.getElementById('patch').textContent =
+  `Set ${window.TFT_META.set} · Patch ${window.TFT_META.patch} · Top ${COMPS.length}`;
+
+function matches(c){
+  if(state.filter==="S" && c.tier!=="S") return false;
+  if(state.filter==="A" && c.tier!=="A") return false;
+  if(state.filter==="fast" && c.roll!=="fast") return false;
+  if(state.filter==="slow" && c.roll!=="slow") return false;
+  if(state.q){
+    const q = state.q.toLowerCase();
+    const hay = (c.name+" "+(c.alias||"")+" "+c.traits.map(t=>t.n).join(" ")+" "+c.units.map(u=>u.name).join(" ")).toLowerCase();
+    if(!hay.includes(q)) return false;
+  }
+  return true;
+}
+
+function sortedFiltered(){
+  return COMPS.map((c,i)=>({c,i})).filter(o=>matches(o.c))
+    .sort((a,b)=>(TIER_RANK[a.c.tier]??9)-(TIER_RANK[b.c.tier]??9));
+}
+
+function renderList(){
+  if(!COMPS.length){
+    listEl.innerHTML = `<div class="err">⚠️ Konnte <b>comps.js</b> nicht laden.<br>Lege <code>comps.js</code> in denselben Ordner wie diese HTML-Datei und öffne sie erneut.</div>`;
+    return;
+  }
+  const rows = sortedFiltered();
+  countEl.textContent = `${rows.length} von ${COMPS.length} Comps`;
+  listEl.innerHTML = rows.map(({c,i})=>{
+    const carries = c.carries.slice(0,4).map(cy=>champImg(cy.slug,cy.name,'')).join('');
+    return `<div class="comprow ${i===state.sel?'sel':''}" data-i="${i}">
+      <div class="tierbadge t-${c.tier}">${c.tier}</div>
+      <div><div class="nm">${esc(c.name)}</div><div class="sub">${esc(c.playstyle.type)} · „${esc(c.alias)}"</div></div>
+      <div class="mini">${carries}</div>
+    </div>`;
+  }).join('') || `<div class="empty" style="margin-top:30px">Keine Comp gefunden.</div>`;
+  [...listEl.querySelectorAll('.comprow')].forEach(el=>{
+    el.onclick = ()=>{ state.sel = +el.dataset.i; renderList(); renderDetail(); };
+  });
+}
+
+function renderDetail(){
+  const c = COMPS[state.sel];
+  if(!c || !matches(c)){ mainEl.innerHTML = `<div class="empty">← Wähle eine Comp.</div>`; return; }
+
+  const traits = c.traits.map(t=>`<div class="trait" title="${esc(t.n)} (${t.c})">${traitImg(t)}<b>${t.c}</b> ${esc(t.n)}</div>`).join('');
+  const units = c.units.slice().sort((a,b)=>(a.cost-b.cost) || ((b.star||0)-(a.star||0))).map(u=>`<div class="unit c${u.cost} ${u.carry?'carry':''}">
+      ${u.carry?'<span class="star">★ Carry</span>':''}
+      ${champImg(u.slug,u.name,'ic')}
+      <span class="un">${esc(u.name)}</span>
+      <span class="co">${u.cost}💰 ${starPips(u.star)}</span>
+    </div>`).join('');
+  const carries = c.carries.map(cy=>{
+    const items = cy.items.map(it=>{
+      let sub = '';
+      if(it.comp && it.comp.length===2){
+        sub = `<div class="itemcomps"><span class="sublbl">baut aus</span>${compIcon(it.comp[0])}<span class="plus">+</span>${compIcon(it.comp[1])}</div>`;
+      } else if(it.alt && it.alt.length===2){
+        sub = `<div class="itemcomps alt"><span class="sublbl">weitere Spezial-Items</span>${compIcon(it.alt[0])}<span class="plus">+</span>${compIcon(it.alt[1])}</div>`;
+      }
+      return `<div class="itemcard"><div class="itemtop">${itemImg(it)}<span>${esc(it.name)}</span></div>${sub}</div>`;
+    }).join('');
+    return `<div class="carrycard"><div class="carryhead">${champImg(cy.slug,cy.name,'ic')}
+      <div><div class="nm">${esc(cy.name)}</div><div class="role">${esc(cy.role)} · ${cy.cost||''}💰 ${starPips(cy.star||2)}</div></div></div>
+      <div class="itemrow">${items}</div></div>`;
+  }).join('');
+
+  const augs = [...c.augments].sort((a,b)=>RAR_ORDER[a.r]-RAR_ORDER[b.r])
+    .map((a,i)=>`<div class="aug"><span class="rank">${i+1}</span><span>${esc(a.n)}</span><span class="rar rar-${a.r}">${a.r}</span></div>`).join('');
+
+  const streakLabel = {win:"Win-Streak", loss:"Loss-Streak", flex:"Flexibel"}[c.econ.streak];
+  const streakCls = {win:"win", loss:"loss", flex:"gold"}[c.econ.streak];
+
+  mainEl.innerHTML = `
+    <div class="title">
+      <div class="tierbadge t-${c.tier}" style="width:34px;height:34px;font-size:18px">${c.tier}</div>
+      <div><h2>${esc(c.name)}</h2><div class="alias">Community-Name: <b>${esc(c.alias)}</b></div></div>
+    </div>
+    <div class="badges">
+      <span class="pill roll-${c.roll}"><b>${esc(c.playstyle.type)}</b> · ${c.roll==='fast'?'Fast Roll':'Slow Roll'}</span>
+      <span class="pill">Level <b>${c.playstyle.level}</b></span>
+      <span class="pill">${streakLabel}</span>
+    </div>
+    <div class="note">${esc(c.playstyle.desc)}</div>
+    <div class="sect"><h3>Traits</h3><div class="traits">${traits}</div></div>
+    <div class="sect"><h3>Team-Komposition</h3><div class="units">${units}</div></div>
+    <div class="sect"><h3>Items auf den Carries &amp; Komponenten</h3>
+      <div class="carries">${carries}</div></div>
+    <div class="sect"><h3>Beste Augments (Top 5 · nach Seltenheit)</h3><div class="augs">${augs}</div></div>
+    <div class="sect"><h3>Economy</h3><div class="econ">
+        <div class="econcard ${streakCls}"><h4>${streakLabel}</h4><p>${esc(c.econ.note)}</p></div>
+        <div class="econcard gold"><h4>Gold-Management</h4><p>${esc(c.econ.gold)}</p></div>
+        <div class="econcard level"><h4>Spielart</h4><p>${esc(c.playstyle.type)} – Ziel-Level ${c.playstyle.level}. ${c.roll==='fast'?'Aggressiv leveln, wenig rollen.':'Auf Ziel-Level slow-rollen.'}</p></div>
+        <div class="econcard win"><h4>Wann spielen?</h4><p>${esc(c.when)}</p></div>
+      </div>
+      <div class="note" style="border-left-color:var(--gold)"><b>Carousel-Priorität:</b> ${esc(c.carousel)}</div>
+    </div>`;
+}
+
+document.getElementById('search').addEventListener('input', e=>{
+  state.q = e.target.value.trim();
+  const sf = sortedFiltered(); if(sf.length) state.sel = sf[0].i;
+  renderList(); renderDetail();
+});
+[...document.querySelectorAll('#filters .chip')].forEach(ch=>{
+  ch.onclick = ()=>{
+    document.querySelectorAll('#filters .chip').forEach(x=>x.classList.remove('active'));
+    ch.classList.add('active'); state.filter = ch.dataset.t;
+    const sf = sortedFiltered(); if(sf.length) state.sel = sf[0].i;
+    renderList(); renderDetail();
+  };
+});
+
+renderList();
+renderDetail();
+</script>
+</body>
+</html>
