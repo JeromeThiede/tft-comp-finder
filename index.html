@@ -109,6 +109,7 @@
   .unit .un{font-size:12.5px}
   .unit .co{font-size:12px}
   .aug{font-size:14.5px}
+  .augic{width:28px;height:28px;border-radius:6px;flex-shrink:0}
   .pill{font-size:13px}
   .alias{font-size:13px}
   .stars{color:var(--c5);letter-spacing:-1px;font-size:11px}
@@ -270,7 +271,9 @@ function renderDetail(){
   }).join('');
 
   const augs = [...c.augments].sort((a,b)=>RAR_ORDER[a.r]-RAR_ORDER[b.r])
-    .map((a,i)=>`<div class="aug"><span class="rank">${i+1}</span><span>${esc(a.n)}</span><span class="rar rar-${a.r}">${a.r}</span></div>`).join('');
+    .map((a,i)=>`<div class="aug"><span class="rank">${i+1}</span>${a.icon?`<img class="augic" src="${a.icon}" alt="" onerror="this.remove()">`:''}<span>${esc(a.n)}</span><span class="rar rar-${a.r}">${a.r}</span></div>`).join('');
+  const augSection = c.augments && c.augments.length ? `<div class="sect"><h3>Empfohlene Augments (echt · nach Seltenheit)</h3><div class="augs">${augs}</div></div>` : '';
+  const carouselNote = c.carousel ? `<div class="note" style="border-left-color:var(--gold)"><b>Carousel-Priorität:</b> ${esc(c.carousel)}</div>` : '';
 
   const streakLabel = {win:"Win-Streak", loss:"Loss-Streak", flex:"Flexibel"}[c.econ.streak];
   const streakCls = {win:"win", loss:"loss", flex:"gold"}[c.econ.streak];
@@ -290,14 +293,14 @@ function renderDetail(){
     <div class="sect"><h3>Team-Komposition</h3><div class="units">${units}</div></div>
     <div class="sect"><h3>Items auf den Carries &amp; Komponenten</h3>
       <div class="carries">${carries}</div></div>
-    <div class="sect"><h3>Beste Augments (Top 5 · nach Seltenheit)</h3><div class="augs">${augs}</div></div>
+    ${augSection}
     <div class="sect"><h3>Economy</h3><div class="econ">
         <div class="econcard ${streakCls}"><h4>${streakLabel}</h4><p>${esc(c.econ.note)}</p></div>
         <div class="econcard gold"><h4>Gold-Management</h4><p>${esc(c.econ.gold)}</p></div>
         <div class="econcard level"><h4>Spielart</h4><p>${esc(c.playstyle.type)} – Ziel-Level ${c.playstyle.level}. ${c.roll==='fast'?'Aggressiv leveln, wenig rollen.':'Auf Ziel-Level slow-rollen.'}</p></div>
         <div class="econcard win"><h4>Wann spielen?</h4><p>${esc(c.when)}</p></div>
       </div>
-      <div class="note" style="border-left-color:var(--gold)"><b>Carousel-Priorität:</b> ${esc(c.carousel)}</div>
+      ${carouselNote}
     </div>`;
 }
 

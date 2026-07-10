@@ -79,7 +79,7 @@ async function scrape(dump){
     // Header-Text der Karte (ohne die Champion-Links)
     const head=$c.clone(); head.find('a[href*="/champions/"]').remove();
     const txt=head.text().replace(/\s+/g,' ').trim();
-    const tier=(txt.match(/\b([SABC])\b/)||[])[1]||'A';
+    const tier=/[SABC]/.test(txt.charAt(0))?txt.charAt(0):'A';   // Tier klebt am Namen -> erstes Zeichen
     const style=(txt.match(STYLE)||[])[1]||'';
     // Name = Text zwischen Tier und Stil
     let name=txt;
@@ -100,6 +100,13 @@ async function scrape(dump){
   return raw;
 }
 
+const AUG_B='https://ap.tft.tools/img/augments/';
+const AUG={"Level Up!":["6MaxLevel103","Prismatic"],"Pandora's Items III":["9PandorasRadiantBox3","Prismatic"],"Glass Cannon II":["GlassCannonII2","Gold"],"Cybernetic Uplink":["6CyberneticUplink22","Gold"],"Cybernetic Implants":["6CyberneticImplants22","Gold"],"Sunfire Board":["6SunfireBoard2","Gold"],"Big Grab Bag":["9BigGrabBag2","Gold"],"Ascension":["9Commander_Ascension2","Gold"],"Portable Forge":["6PortableForge2","Gold"],"Glass Cannon I":["GlassCannonI1","Silver"],"Carve a Path":["ComponentQuestSword1","Silver"],"Continuous Conjuration":["ComponentQuestRod1","Silver"],"Backup Bows":["ComponentQuestBow1","Silver"],"Extra Buckles":["ComponentQuestBelt1","Silver"],"Tiny Titans":["6TinyTitans1","Silver"],"Pandora's Items":["6PandorasItems1","Silver"],"Recombobulator":["6Recombobulator1","Silver"],"Bonk!":["17NasusCarry1","Silver"],"Contract Killer":["17PykeCarry2","Gold"],"Reach for the Stars":["17JaxCarry2","Gold"],"Self Destruct":["17GragasCarry2","Gold"]};
+const HERO={"Bonk!":1,"Contract Killer":1,"Reach for the Stars":1,"Self Destruct":1};
+const A_AP=/Rabadon|Void Staff|Jeweled|Blue Buff|Nashor|Hextech|Morellonomicon|Archangel|Ionic|Crownguard/, A_AD=/Deathblade|Infinity Edge|Last Whisper|Kraken|Guinsoo|Bloodthirster|Titan's|Sterak|Red Buff|Giant Slayer|Quicksilver|Striker/;
+function dmgType(carries){const main=(carries[0]?carries[0].items:[]).map(i=>i.name).join(' ');const all=carries.flatMap(x=>x.items.map(i=>i.name)).join(' ');if(A_AP.test(main))return'ap';if(A_AD.test(main))return'ad';if(A_AP.test(all))return'ap';if(A_AD.test(all))return'ad';return'tank';}
+function pickAug(name,roll,carries){const dmg=dmgType(carries),fast=roll==='fast';const wish=[];if(HERO[name])wish.push(name);wish.push(fast?"Level Up!":"Pandora's Items III");wish.push(dmg==='ad'?"Glass Cannon II":dmg==='ap'?"Cybernetic Uplink":"Sunfire Board");wish.push(fast?"Ascension":"Big Grab Bag");wish.push(dmg==='ad'?"Carve a Path":dmg==='ap'?"Continuous Conjuration":"Extra Buckles");wish.push("Tiny Titans","Pandora's Items","Recombobulator");const seen=new Set(),out=[];for(const n of wish){if(out.length>=5)break;if(!seen.has(n)&&AUG[n]){seen.add(n);out.push({n,r:AUG[n][1],icon:AUG_B+AUG[n][0]+".png"});}}return out;}
+
 function toComp([tier,name,style,units]){
   const st=parseStyle(style);
   const U=units.map(([n,items])=>{const u={name:n,slug:champSlug(n),cost:cost(n),carry:items.length>=2,items:items.map(mkItem)};u.star=starLevel(u,st.roll);return u;});
@@ -107,9 +114,11 @@ function toComp([tier,name,style,units]){
   const active=activeTraits(U,[]);
   const named=namedFromName(name,active);
   const traits=activeTraits(U,named);
+  const cc={}; carries.forEach(cy=>cy.items.forEach(it=>(it.comp||[]).forEach(c=>cc[c.name]=(cc[c.name]||0)+1)));
+  const carousel=Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([n])=>n).join(' → ');
   return {name,alias:name,tier,roll:st.roll,
     playstyle:{type:st.type,level:st.level,desc:`${named.join(" · ")} — ${carries.map(c=>c.name).join(" & ")||"Flex"}.`},
-    traits,units:U,carries,augments:augFor(named,st.roll,carries),
+    traits,units:U,carries,augments:pickAug(name,st.roll,carries),
     econ:{streak:st.roll==="fast"?"win":"flex",gold:st.roll==="fast"?"Econ auf >50 Gold halten, dann leveln/rollen.":`Auf Level ${st.level} slow-rollen (~50 Gold), Carries zuerst hoch-sternen.`,note:st.roll==="fast"?"Win-Streak anstreben, HP über >50 Gold Zinsen sparen und über Level-Timings pushen.":"Flexibel Win-/Loss-Streak; HP als Ressource für den Slow-Roll nutzen."},
     when:`${named[0]}-Opener bzw. passende Items für ${carries.map(c=>c.name).join(" / ")||"die Carries"}.`,carousel:""};
 }
