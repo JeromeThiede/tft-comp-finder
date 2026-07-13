@@ -70,7 +70,9 @@ function buildTables(data){
     const comp = (it.composition||[]).map(api => itemByApi[api]?.name).filter(Boolean);
     if(comp.length === 2) RECIPE[norm(it.name)] = comp;
   }
-  return { setNumber:set.number, COST, CHAMP_TRAITS, CHAMP_ICON, CHAMP_NAME, TRAITS, RECIPE, ITEM_ICON };
+  // manuelle Aliasse: tftactics-Slug -> Community-Dragon-Namensschlüssel (für Sonderfälle)
+  const ALIAS = { nunu:"nunuwillump" };
+  return { setNumber:set.number, COST, CHAMP_TRAITS, CHAMP_ICON, CHAMP_NAME, TRAITS, RECIPE, ITEM_ICON, ALIAS };
 }
 
 /* ---------- Augments: kuratierter MetaTFT-S/A-Pool (bleibt manuell) ---------- */
@@ -125,7 +127,8 @@ async function scrapeComps(TB){
 function toComp([tier,name,style,units], TB){
   const st=parseStyle(style);
   const U=units.map(([slug,items])=>{
-    const key=norm(slug);
+    let key=norm(slug);
+    if(TB.COST[key]==null && TB.ALIAS && TB.ALIAS[key]) key=TB.ALIAS[key];   // Sonderfälle wie Nunu
     const nm=TB.CHAMP_NAME[key]||slug;
     const its=items.map(it=>({name:it,slug:it.replace(/[.'’\s]/g,''),short:shortItem(it),icon:TB.ITEM_ICON[norm(it)]||'',
       comp:(TB.RECIPE[norm(it)]||[]).map(c=>({name:c,slug:c.replace(/[.'’\s]/g,''),icon:TB.ITEM_ICON[norm(c)]||''}))}));
@@ -163,6 +166,8 @@ const RANK={S:0,A:1,B:2,C:3};
   const raw = await scrapeComps(TB);
   if(raw.length<5) throw new Error(`Nur ${raw.length} Comps erkannt – tftactics-Struktur geändert? Mit --dump prüfen.`);
   const comps = raw.map(r=>toComp(r,TB)).sort((a,b)=>(RANK[a.tier]??9)-(RANK[b.tier]??9)).slice(0,30);
+  const miss=[...new Set(comps.flatMap(c=>c.units.filter(u=>!u.cost).map(u=>u.slug)))];
+  console.log(miss.length ? ('WARN unaufgeloeste Champions (Alias noetig): '+miss.join(', ')) : 'Alle Champions gemappt (keine Kosten-Luecken).');
   const body='window.TFT_META='+JSON.stringify({set:TB.setNumber,patch:"auto",updated:new Date().toISOString().slice(0,10),source:"tftactics.gg + CommunityDragon"})+';\nwindow.TFT_COMPS='+JSON.stringify(comps)+';\n';
   writeFileSync('comps.js', body);
   console.log(`comps.js geschrieben – ${comps.length} Comps (${comps.map(c=>c.tier).join('')}).`);
