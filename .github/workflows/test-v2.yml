@@ -1,0 +1,28 @@
+name: TEST v2 (Set-Auto-Update)
+# Läuft NUR manuell, committet NICHTS und fasst die Live-Seite nicht an.
+# Er zeigt das Community-Dragon-Schema (Probe) und legt comps.js + cd-tables.json als Download-Artefakt ab.
+on:
+  workflow_dispatch: {}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - run: npm i cheerio
+
+      - name: 1) Schema-Check (Probe)
+        run: node scrape-tftactics-v2.mjs --probe
+
+      - name: 2) comps.js testweise erzeugen
+        run: node scrape-tftactics-v2.mjs --dump
+
+      - name: 3) Ergebnis als Artefakt hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v2-test-output
+          path: |
+            comps.js
+            cd-tables.json
