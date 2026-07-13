@@ -173,14 +173,14 @@ const TRAIT_CDN = k => `https://sunderarmor.com/icons/${k}.png`;
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const initials = name => name.split(' ').map(w=>w[0]).join('').slice(0,3);
 
-function champImg(slug,name,cls){
-  return `<img class="${cls}" src="${CHAMP_CDN(slug)}" alt="${esc(name)}" onerror="this.replaceWith(mkFb('fb','${esc(initials(name))}'))">`;
+function champImg(slug,name,cls,icon){
+  return `<img class="${cls}" src="${icon||CHAMP_CDN(slug)}" alt="${esc(name)}" onerror="this.replaceWith(mkFb('fb','${esc(initials(name))}'))">`;
 }
 function mkFb(cls,txt){ const d=document.createElement('div'); d.className=cls; d.textContent=txt; return d; }
 function traitImg(t){
   const ab = t.n.replace(/[^A-Za-z]/g,'').slice(0,2).toUpperCase();
   const key = t.key || t.n.toLowerCase().replace(/\s+/g,'');
-  return `<img class="tico" src="${TRAIT_CDN(key)}" alt="${esc(t.n)}" onerror="this.replaceWith(mkFbSpan('${ab}'))">`;
+  return `<img class="tico" src="${t.icon||TRAIT_CDN(key)}" alt="${esc(t.n)}" onerror="this.replaceWith(mkFbSpan('${ab}'))">`;
 }
 function mkFbSpan(txt){ const s=document.createElement('span'); s.className='tfb'; s.textContent=txt; return s; }
 function itemImg(it){
@@ -232,7 +232,7 @@ function renderList(){
   const rows = sortedFiltered();
   countEl.textContent = `${rows.length} von ${COMPS.length} Comps`;
   listEl.innerHTML = rows.map(({c,i})=>{
-    const carries = c.carries.slice(0,4).map(cy=>champImg(cy.slug,cy.name,'')).join('');
+    const carries = c.carries.slice(0,4).map(cy=>champImg(cy.slug,cy.name,'',cy.icon)).join('');
     return `<div class="comprow ${i===state.sel?'sel':''}" data-i="${i}">
       <div class="tierbadge t-${c.tier}">${c.tier}</div>
       <div><div class="nm">${esc(c.name)}</div><div class="sub">${esc(c.playstyle.type)} · „${esc(c.alias)}"</div></div>
@@ -251,7 +251,7 @@ function renderDetail(){
   const traits = c.traits.map(t=>`<div class="trait" title="${esc(t.n)} (${t.c})">${traitImg(t)}<b>${t.c}</b> ${esc(t.n)}</div>`).join('');
   const units = c.units.slice().sort((a,b)=>(a.cost-b.cost) || ((b.star||0)-(a.star||0))).map(u=>`<div class="unit c${u.cost} ${u.carry?'carry':''}">
       ${u.carry?'<span class="star">★ Carry</span>':''}
-      ${champImg(u.slug,u.name,'ic')}
+      ${champImg(u.slug,u.name,'ic',u.icon)}
       <span class="un">${esc(u.name)}</span>
       <span class="co">${u.cost}💰 ${starPips(u.star)}</span>
     </div>`).join('');
@@ -265,14 +265,14 @@ function renderDetail(){
       }
       return `<div class="itemcard"><div class="itemtop">${itemImg(it)}<span>${esc(it.name)}</span></div>${sub}</div>`;
     }).join('');
-    return `<div class="carrycard"><div class="carryhead">${champImg(cy.slug,cy.name,'ic')}
+    return `<div class="carrycard"><div class="carryhead">${champImg(cy.slug,cy.name,'ic',cy.icon)}
       <div><div class="nm">${esc(cy.name)}</div><div class="role">${esc(cy.role)} · ${cy.cost||''}💰 ${starPips(cy.star||2)}</div></div></div>
       <div class="itemrow">${items}</div></div>`;
   }).join('');
 
   const augs = [...c.augments].sort((a,b)=>RAR_ORDER[a.r]-RAR_ORDER[b.r])
     .map((a,i)=>`<div class="aug"><span class="rank">${i+1}</span>${a.icon?`<img class="augic" src="${a.icon}" alt="" onerror="this.remove()">`:''}<span>${esc(a.n)}</span><span class="rar rar-${a.r}">${a.r}</span></div>`).join('');
-  const augSection = c.augments && c.augments.length ? `<div class="sect"><h3>Empfohlene Augments (echt · nach Seltenheit)</h3><div class="augs">${augs}</div></div>` : '';
+  const augSection = c.augments && c.augments.length ? `<div class="sect"><h3>Empfohlene Augments (MetaTFT S/A · nach Seltenheit)</h3><div class="augs">${augs}</div></div>` : '';
   const carouselNote = c.carousel ? `<div class="note" style="border-left-color:var(--gold)"><b>Carousel-Priorität:</b> ${esc(c.carousel)}</div>` : '';
 
   const streakLabel = {win:"Win-Streak", loss:"Loss-Streak", flex:"Flexibel"}[c.econ.streak];
