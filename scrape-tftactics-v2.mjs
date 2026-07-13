@@ -44,11 +44,15 @@ function buildTables(data){
   const COST = {}, CHAMP_TRAITS = {}, CHAMP_ICON = {}, CHAMP_NAME = {};
   for(const c of set.champions){
     if(c.cost == null || !c.name) continue;
-    const key = norm(c.name);
-    COST[key] = c.cost;
-    CHAMP_TRAITS[key] = (c.traits||[]).slice();
-    CHAMP_ICON[key] = cdIcon(c.squareIcon || c.tileIcon || c.icon);
-    CHAMP_NAME[key] = c.name;
+    // Champion unter Name UND internem apiName (ohne Set-Präfix) ablegen -> deckt z. B. "Nunu" vs "Nunu & Willump" ab
+    const keys = [norm(c.name)];
+    if(c.apiName) keys.push(norm(c.apiName.replace(/^TFT\d+_/i,'')));
+    for(const key of keys){
+      COST[key] = c.cost;
+      CHAMP_TRAITS[key] = (c.traits||[]).slice();
+      CHAMP_ICON[key] = cdIcon(c.squareIcon || c.tileIcon || c.icon);
+      CHAMP_NAME[key] = c.name;
+    }
   }
   const TRAITS = {};
   for(const t of set.traits){
@@ -56,9 +60,8 @@ function buildTables(data){
     const breaks = (t.effects||[]).map(e => e.minUnits).filter(n => typeof n === 'number');
     TRAITS[t.name] = { breaks: [...new Set(breaks)].sort((a,b)=>a-b), icon: cdIcon(t.icon), members: [] };
   }
-  // Mitglieder aus Champion-Traits füllen
-  for(const [key, traits] of Object.entries(CHAMP_TRAITS))
-    for(const tn of traits) if(TRAITS[tn]) TRAITS[tn].members.push(CHAMP_NAME[key]);
+  // Mitglieder einmal je Champion aus der Champion-Liste füllen (kein Doppelzählen)
+  for(const c of set.champions){ if(!c.name) continue; for(const tn of (c.traits||[])) if(TRAITS[tn]) TRAITS[tn].members.push(c.name); }
 
   const RECIPE = {}, ITEM_ICON = {};
   for(const it of items){
