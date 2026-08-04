@@ -117,7 +117,7 @@ async function scrapeComps(TB){
     let name=txt; const mi=txt.search(STYLE); if(mi>0) name=txt.slice(0,mi); name=name.replace(/^[SABC]\s*/,'').replace(/\b(Emblem|Augment)\b/g,'').trim();
     const units=[];
     anchors.forEach(a=>{ const href=$(a).attr('href')||''; const slug=(href.match(/champions\/([^/]+)/)||[])[1]; if(!slug) return;
-      const items=[]; $(a).find('img[alt]').each((_,img)=>{const alt=$(img).attr('alt'); if(alt&&KNOWN_ITEMS.has(norm(alt))) items.push(alt);});
+      const items=[]; $(a).find('img[alt]').each((_,img)=>{const alt=$(img).attr('alt'); if(!alt) return; const na=norm(alt); if(TB.COST[na]!=null) return; if(KNOWN_ITEMS.has(na)) items.push(alt);});
       units.push([slug,items]); });
     if(units.length>=4) raw.push([tier,name,style,units]);
   }
