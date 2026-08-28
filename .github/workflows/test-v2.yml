@@ -26,3 +26,4 @@ jobs:
           path: |
             comps.js
             cd-tables.json
+            champ-backup.json
