@@ -92,14 +92,13 @@ function scrapeComps(html, TB){
   const $ = cheerio.load(html);
   const KNOWN = new Set(Object.keys(TB.ITEM_ICON));
   // nur echte Champion-Links (/champions/<name>/), nicht der Nav-Link /champions/
-  const anchors = $('a[href]').toArray().filter(a => /\/champions\/[^/]+\//.test($(a).attr('href')||''));
+  const isChamp = a => /\/champions\/[^/]+\//.test($(a).attr('href')||'');
+  const countChamps = el => el.find('a[href]').toArray().filter(isChamp).length;
+  const anchors = $('a[href]').toArray().filter(isChamp);
   if(anchors.length < 4) return [];
-  const chain = a => [a, ...$(a).parents().toArray()];
-  // tiefster gemeinsamer Vorfahre aller Champion-Links = Comp-Container
-  let container=null; for(const cand of chain(anchors[0])){ if(anchors.every(a=>chain(a).includes(cand))){ container=cand; break; } }
-  // Comp-Karte = das Kind des Containers, das den jeweiligen Link enthält
+  // Comp-Karte = größter Vorfahre mit höchstens 12 Champion-Links (Filter-Raster mit ~69 Links fällt so raus)
   const cards=new Map();
-  for(const a of anchors){ const ch=chain(a); const i=ch.indexOf(container); const card = i>0?ch[i-1]:container; if(!cards.has(card)) cards.set(card,[]); cards.get(card).push(a); }
+  for(const a of anchors){ let el=$(a), best=null; while(el.length && el[0]){ if(countChamps(el)>12) break; best=el[0]; el=el.parent(); } if(!best) continue; if(!cards.has(best)) cards.set(best,[]); cards.get(best).push(a); }
   const STYLE=/(Fast 8\/9|Fast 8|Fast 9|Slow Roll \(\d\)|Standard)/;
   const raw=[];
   for(const [card,as] of cards){
@@ -108,6 +107,7 @@ function scrapeComps(html, TB){
     const txt=head.text().replace(/\s+/g,' ').trim();
     const tier=/[SABC]/.test(txt.charAt(0))?txt.charAt(0):'A';
     const style=(txt.match(STYLE)||[])[1]||'';
+    if(!style) continue;                             // ohne Spielstil-Label ist es keine Comp (z. B. Filter-Raster)
     let name=txt; const mi=txt.search(STYLE); if(mi>0) name=txt.slice(0,mi); name=name.replace(/^[SABC]\s*/,'').replace(/\b(Emblem|Augment)\b/g,'').trim();
     const units=[];
     as.forEach(a=>{ const href=$(a).attr('href')||''; const slug=(href.match(/champions\/([^/]+)/)||[])[1]; if(!slug) return;
