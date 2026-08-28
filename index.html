@@ -249,7 +249,7 @@ function renderDetail(){
   if(!c || !matches(c)){ mainEl.innerHTML = `<div class="empty">← Wähle eine Comp.</div>`; return; }
 
   const traits = c.traits.map(t=>`<div class="trait" title="${esc(t.n)} (${t.c})">${traitImg(t)}<b>${t.c}</b> ${esc(t.n)}</div>`).join('');
-  const units = c.units.slice().sort((a,b)=>(a.cost-b.cost) || ((b.star||0)-(a.star||0))).map(u=>`<div class="unit c${u.cost} ${u.carry?'carry':''}">
+  const units = c.units.slice().sort((a,b)=>(a.cost-b.cost) || ((b.star||0)-(a.star||0))).map(u=>`<div class="unit c${u.cost} ${u.carry?'carry':''}" ${u.ph?'title="Platzhalter – neues Set noch nicht vollständig in der Datenquelle (Bild/Kosten evtl. aus früherem Set)"':''}>
       ${u.carry?'<span class="star">★ Carry</span>':''}
       ${champImg(u.slug,u.name,'ic',u.icon)}
       <span class="un">${esc(u.name)}</span>

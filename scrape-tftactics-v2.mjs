@@ -62,8 +62,11 @@ function buildTables(data, want){
   const RECIPE={}, ITEM_ICON={};
   for(const it of items){ if(!it.name) continue; ITEM_ICON[norm(it.name)]=cdIcon(it.icon);
     const comp=(it.composition||[]).map(a=>itemByApi[a]?.name).filter(Boolean); if(comp.length===2) RECIPE[norm(it.name)]=comp; }
+  // Fallback-Pool: Champions aus ALLEN CD-Sets (jüngste Version gewinnt) -> Platzhalter-Portrait+Kosten bei Set-Nachlauf
+  const POOL={}; const setNo=s=>+((String(s.mutator||'').match(/set_?0*(\d+)/i)||[])[1]||s.number)||0;
+  for(const s of (data.setData||[]).slice().sort((a,b)=>setNo(a)-setNo(b))) for(const c of (s.champions||[])){ if(!c.name||c.cost==null) continue; const r={name:c.name,cost:c.cost,icon:cdIcon(c.squareIcon||c.tileIcon||c.icon)}; POOL[norm(c.name)]=r; if(c.apiName) POOL[norm(c.apiName.replace(/^TFT\d+_/i,''))]=r; }
   const ALIAS={ nunu:"nunuwillump" };
-  return { cdNumber:set.number, setNumber:(want||set.number), COST, CHAMP_TRAITS, CHAMP_ICON, CHAMP_NAME, TRAITS, RECIPE, ITEM_ICON, ALIAS };
+  return { cdNumber:set.number, setNumber:(want||set.number), COST, CHAMP_TRAITS, CHAMP_ICON, CHAMP_NAME, TRAITS, RECIPE, ITEM_ICON, ALIAS, POOL };
 }
 
 /* ---------- Augments: kuratierter MetaTFT-Pool (pro Set auffrischen) ---------- */
@@ -126,10 +129,11 @@ function toComp([tier,name,style,units], TB){
   const U=units.map(([slug,items])=>{
     let key=norm(slug);
     if(TB.COST[key]==null && TB.ALIAS && TB.ALIAS[key]) key=TB.ALIAS[key];
-    const nm=TB.CHAMP_NAME[key]||slug;
     const its=items.map(it=>({name:it,slug:it.replace(/[.'’\s]/g,''),short:shortItem(it),icon:TB.ITEM_ICON[norm(it)]||'',
       comp:(TB.RECIPE[norm(it)]||[]).map(c=>({name:c,slug:c.replace(/[.'’\s]/g,''),icon:TB.ITEM_ICON[norm(c)]||''}))}));
-    const u={name:nm,slug:key,cost:TB.COST[key]||0,traits:TB.CHAMP_TRAITS[key]||[],icon:TB.CHAMP_ICON[key]||'',carry:its.length>=2,items:its};
+    let nm=TB.CHAMP_NAME[key]||slug, cost=TB.COST[key], traits=TB.CHAMP_TRAITS[key]||[], icon=TB.CHAMP_ICON[key]||'', ph=false;
+    if(cost==null && TB.POOL && TB.POOL[key]){ const p=TB.POOL[key]; nm=p.name; cost=p.cost; icon=p.icon; ph=true; } // Platzhalter aus Pool; Traits leer, damit Trait-Zahlen sauber bleiben
+    const u={name:nm,slug:key,cost:cost||0,traits,icon,carry:its.length>=2,items:its}; if(ph) u.ph=true;
     u.star=starLevel(u,st.roll); return u;
   });
   const carries=U.filter(u=>u.carry).slice(0,3).map(u=>({name:u.name,slug:u.slug,cost:u.cost,star:u.star,icon:u.icon,role:(u.cost>=4?"Haupt-Carry":"Reroll-Carry"),items:u.items.slice(0,3)}));
@@ -162,15 +166,17 @@ const RANK={S:0,A:1,B:2,C:3};
   const TB = buildTables(data, setNum);
   console.log('Set:', TB.setNumber, '(CD:'+TB.cdNumber+') | Champs:', Object.keys(TB.COST).length, '| Traits:', Object.keys(TB.TRAITS).length, '| Rezepte:', Object.keys(TB.RECIPE).length);
   if(has('--dump')) writeFileSync('cd-tables.json', JSON.stringify(TB,null,1));
+  writeFileSync('champ-backup.json', JSON.stringify(TB.POOL));   // persistente Champion-Sicherung (Portraits/Kosten aller Sets)
   const raw = scrapeComps(html, TB);
   console.log('Comps erkannt:', raw.length, '| Gruppengrößen:', raw.map(r=>r[3].length).join(','));
   if(raw.length<5) throw new Error(`Nur ${raw.length} Comps erkannt – tftactics-Struktur geändert? Mit --dump prüfen.`);
   const comps = raw.map(r=>toComp(r,TB)).sort((a,b)=>(RANK[a.tier]??9)-(RANK[b.tier]??9)).slice(0,30);
-  const miss=[...new Set(comps.flatMap(c=>c.units.filter(u=>!u.cost).map(u=>u.slug)))];
-  console.log(miss.length ? ('WARN unaufgeloeste Champions: '+miss.join(', ')) : 'Alle Champions gemappt (keine Kosten-Luecken).');
-  // Sicherung: zu viele unaufgelöste Champions -> Datenquelle hinkt (neues Set) -> abbrechen, alte comps.js behalten
-  const totalU=comps.reduce((s,c)=>s+c.units.length,0), missU=comps.reduce((s,c)=>s+c.units.filter(u=>!u.cost).length,0);
-  if(totalU && missU/totalU > 0.25) throw new Error(`${miss.length} Champions unaufgeloest (${Math.round(missU/totalU*100)}% der Units) – Community Dragon hat das neue Set wohl noch nicht (Nachlauf). comps.js wird NICHT ueberschrieben, alte Daten bleiben.`);
+  const phN=[...new Set(comps.flatMap(c=>c.units.filter(u=>u.ph).map(u=>u.name)))];
+  const blank=[...new Set(comps.flatMap(c=>c.units.filter(u=>!u.icon).map(u=>u.slug)))];
+  console.log('Platzhalter aus Pool:', phN.length, '| ganz ohne Bild:', blank.length, blank.length?('['+blank.join(', ')+']'):'');
+  // Sicherung: nur abbrechen, wenn zu viele Champions GAR KEIN Bild haben (auch nicht aus dem Pool)
+  const totalU=comps.reduce((s,c)=>s+c.units.length,0), blankU=comps.reduce((s,c)=>s+c.units.filter(u=>!u.icon).length,0);
+  if(totalU && blankU/totalU > 0.4) throw new Error(`${blank.length} Champions ganz ohne Bild (${Math.round(blankU/totalU*100)}%) – Datenquelle zu unvollständig. comps.js NICHT ueberschrieben, alte Daten bleiben.`);
   const body='window.TFT_META='+JSON.stringify({set:TB.setNumber,patch:"auto",updated:new Date().toISOString().slice(0,10),source:"tftactics.gg + CommunityDragon"})+';\nwindow.TFT_COMPS='+JSON.stringify(comps)+';\n';
   writeFileSync('comps.js', body);
   console.log(`comps.js geschrieben – ${comps.length} Comps (${comps.map(c=>c.tier).join('')}).`);
