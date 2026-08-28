@@ -29,14 +29,17 @@ function setCandidates(data){
     c.push({number:+num||0, mutator:String(s.mutator||''), champions:s.champions||[], traits:s.traits||[]});
   }
   if(data.sets) for(const k of Object.keys(data.sets)) c.push({number:+k||0, mutator:'sets['+k+']', champions:data.sets[k].champions||[], traits:data.sets[k].traits||[]});
-  return c.filter(s=>(s.champions||[]).length>=20);
+  return c;
 }
 function pickSet(data, want){
   const cands=setCandidates(data);
-  let s = want ? cands.find(x=>x.number===want) : null;
-  if(!s && want) s = cands.find(x=>new RegExp('set_?0*'+want+'\\b','i').test(x.mutator));
-  if(!s){ s=[...cands].sort((a,b)=>b.number-a.number)[0]; }
-  if(!s) throw new Error('Kein Set mit Champions gefunden – Schema geändert? Mit --probe prüfen.');
+  if(want){
+    // Basis-Set "TFTSet<want>" gezielt wählen (nicht PVEMODE/PAIRS/TURBO), auch wenn noch wenige Champs
+    const exact = cands.find(x=>new RegExp('^tftset0*'+want+'$','i').test(x.mutator)) || cands.find(x=>x.number===want && (x.champions||[]).length>=15);
+    if(exact) return exact;
+  }
+  const s = [...cands].filter(x=>(x.champions||[]).length>=40).sort((a,b)=>b.number-a.number)[0] || [...cands].sort((a,b)=>b.number-a.number)[0];
+  if(!s) throw new Error('Kein Set gefunden – Schema geändert? Mit --probe prüfen.');
   return s;
 }
 
@@ -164,7 +167,10 @@ const RANK={S:0,A:1,B:2,C:3};
   if(raw.length<5) throw new Error(`Nur ${raw.length} Comps erkannt – tftactics-Struktur geändert? Mit --dump prüfen.`);
   const comps = raw.map(r=>toComp(r,TB)).sort((a,b)=>(RANK[a.tier]??9)-(RANK[b.tier]??9)).slice(0,30);
   const miss=[...new Set(comps.flatMap(c=>c.units.filter(u=>!u.cost).map(u=>u.slug)))];
-  console.log(miss.length ? ('WARN unaufgeloeste Champions (Alias noetig): '+miss.join(', ')) : 'Alle Champions gemappt (keine Kosten-Luecken).');
+  console.log(miss.length ? ('WARN unaufgeloeste Champions: '+miss.join(', ')) : 'Alle Champions gemappt (keine Kosten-Luecken).');
+  // Sicherung: zu viele unaufgelöste Champions -> Datenquelle hinkt (neues Set) -> abbrechen, alte comps.js behalten
+  const totalU=comps.reduce((s,c)=>s+c.units.length,0), missU=comps.reduce((s,c)=>s+c.units.filter(u=>!u.cost).length,0);
+  if(totalU && missU/totalU > 0.25) throw new Error(`${miss.length} Champions unaufgeloest (${Math.round(missU/totalU*100)}% der Units) – Community Dragon hat das neue Set wohl noch nicht (Nachlauf). comps.js wird NICHT ueberschrieben, alte Daten bleiben.`);
   const body='window.TFT_META='+JSON.stringify({set:TB.setNumber,patch:"auto",updated:new Date().toISOString().slice(0,10),source:"tftactics.gg + CommunityDragon"})+';\nwindow.TFT_COMPS='+JSON.stringify(comps)+';\n';
   writeFileSync('comps.js', body);
   console.log(`comps.js geschrieben – ${comps.length} Comps (${comps.map(c=>c.tier).join('')}).`);
